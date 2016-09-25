@@ -22,6 +22,7 @@
 		10A931541D96FFE800DE0AB7 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A931531D96FFE800DE0AB7 /* Model.swift */; };
 		10A931561D96FFEE00DE0AB7 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A931551D96FFEE00DE0AB7 /* ModelTests.swift */; };
 		10A931571D97002C00DE0AB7 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A931531D96FFE800DE0AB7 /* Model.swift */; };
+		10A931591D98406900DE0AB7 /* Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A931581D98406900DE0AB7 /* Service.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +52,7 @@
 		10A9314A1D96D22500DE0AB7 /* today.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = today.json; sourceTree = "<group>"; };
 		10A931531D96FFE800DE0AB7 /* Model.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		10A931551D96FFEE00DE0AB7 /* ModelTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+		10A931581D98406900DE0AB7 /* Service.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Service.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +98,7 @@
 				1007AB731D9061F700EEE2C7 /* MasterViewController.swift */,
 				1007AB751D9061F700EEE2C7 /* DetailViewController.swift */,
 				1007AB931D90622000EEE2C7 /* Communication.swift */,
+				10A931581D98406900DE0AB7 /* Service.swift */,
 				10A931531D96FFE800DE0AB7 /* Model.swift */,
 				1007AB771D9061F700EEE2C7 /* Main.storyboard */,
 				1007AB7A1D9061F700EEE2C7 /* Assets.xcassets */,
@@ -227,6 +230,7 @@
 				1007AB761D9061F700EEE2C7 /* DetailViewController.swift in Sources */,
 				1007AB741D9061F700EEE2C7 /* MasterViewController.swift in Sources */,
 				1007AB721D9061F700EEE2C7 /* AppDelegate.swift in Sources */,
+				10A931591D98406900DE0AB7 /* Service.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

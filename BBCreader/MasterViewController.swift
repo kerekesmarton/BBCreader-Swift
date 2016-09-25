@@ -80,7 +80,7 @@ class MasterViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
 
-        let model = objects[indexPath.row] as! Displayable
+        let model = objects[indexPath.row] as! Model
         cell.textLabel!.text = model.text()
         return cell
     }

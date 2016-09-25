@@ -10,6 +10,7 @@ import UIKit
 
 let UNKNOWN_FORMAT_EXCEPTION = "Unknown format encountered"
 
+
 typealias JSONDict = Dictionary<String,Any>
 
 
@@ -39,73 +40,41 @@ fileprivate var timeFormatter: DateFormatter {
     return  _dateFormatter
 }
 
-struct Parser {
+enum JSON {
     
-    static func parse(_ data: Any?) throws -> Model {
-        
-        if data is Dictionary <String,Any> {
-            
-            var results : Array = Array<Model>()
-            
-            for (key, obj) in data as! Dictionary <String,Any> {
-                
-                do {
-                 
-                    let model = try modelForKey(key:key, objects:obj as! JSONDict)
-                    results.append(model)
-                } catch let error {
-                    print(error.localizedDescription)
-                }
-            }
-            
-            // Looking at the HTTP response, there is always only one schedule object per day, assuming as such. In case the API changes, this has to be changed.
-            return results.first!
-        }
-        else
-        {
-            throw CommunicationError.Parsing
+    case Model(JSONDict?)
+    case Error(Error)
+    
+    func parse() throws -> Model {
+        switch self {
+        case JSON.Model(let json): return Day.itemsFromJSONData(json)
+        case JSON.Error(let error): return ErrorModel(error)
         }
     }
     
-    fileprivate static func modelForKey(key : String, objects: JSONDict) throws -> Model {
+    init(_ data: Any?) {
         
-        var result : Model?
-        
-        switch key {
-        case "schedule":
-            result = Schedule(objects)
-        case "day":
-            result = Day(objects)
-        case "broadcast":
-            result = Broadcast(objects)
-        case "programme":
-            result = Programme(objects)
-        case "image":
-            result = Image(objects)
-        case "displayTitle":
-            result = DisplayTitles(objects)
+        switch data {
+        case is JSONDict:
+            self = JSON.Model(data as? JSONDict)
+        case is Error:
+            self = JSON.Error((data as? Error)!)
         default:
-            throw CommunicationError.Other("Data type not recognized")
+            self = JSON.Error(CommunicationError.Parsing)
         }
-        
-        return result!
     }
-}
-
-protocol Displayable {
-    
-    func text() -> String
 }
 
 protocol Model {
-    
+    func text() -> String
 }
 
 protocol JSONConstructable {
-    init(_ data: JSONDict)
+    
+    static func itemsFromJSONData(_ : JSONDict?) -> Model
 }
 
-struct ErrorModel : Model,Displayable {
+struct ErrorModel : Model {
     
     var error : Error? = nil
     
@@ -119,110 +88,110 @@ struct ErrorModel : Model,Displayable {
     }
 }
 
-struct Schedule : Model,JSONConstructable,Displayable {
+struct Day : JSONConstructable, Model{
     
-    var day : Day
-    init(_ data: JSONDict) {
+    var date : Date? = nil
+    var broadcasts : Array <Broadcast>? = Array()
+    
+    internal static func itemsFromJSONData(_ json: JSONDict?) -> Model {
         
-        day = Day(data["day"] as! JSONDict)
+        var day : Day = Day()
+        
+        let dayfragment = json.flatMap {$0["schedule"] as? JSONDict}.flatMap{$0["day"] as? JSONDict}
+        
+        guard let string = dayfragment?["date"] as? String,
+            let jsonArray : Array<JSONDict> = dayfragment?["broadcasts"] as? Array<JSONDict>
+            else {
+            return day
+        }
+        
+        day.date = dateFormatter.date(from: string)!
+        
+        for jsonItem : JSONDict in jsonArray {
+            let broadcast = Broadcast.itemsFromJSONData(jsonItem)
+            day.broadcasts?.append(broadcast as! Broadcast)
+        }
+        
+        return day
     }
     
     internal func text() -> String {
-        return day.dayReadable()!
-    }
-
-}
-
-struct Day : Model,JSONConstructable{
-    var date : Date
-    var broadcasts : Array <Broadcast>
-    
-    init(_ data: JSONDict) {
-        
-        date = Date()
-        
-        if let string = data["date"] as? String {
-            date = dateFormatter.date(from: string)!
+        guard let date = date else {
+            return ""
         }
-        
-        broadcasts = Broadcast.broadcastsFormArray(data["broadcasts"] as! Array<JSONDict>)
-        
-    }
-    func dayReadable() -> String? {
         return relativeDateFormatter.string(from: date)
     }
 }
 
-struct Broadcast : Model,JSONConstructable {
+struct Broadcast : JSONConstructable, Model {
     
-    var start : Date
-    var end : Date
-    let duration : TimeInterval
-    let programme : Programme
+    var start : Date? = nil
+    var end : Date? = nil
+    var duration : TimeInterval? = nil
+    var imagePid : String? = nil
+    var title: String? = nil
+    var subTitle : String? = nil
     
-    init(_ data: JSONDict) {
-        start = Date()
-        if let string = data["start"] as? String {
-            start = dateTimeFormatter.date(from: string)!
-        }
-        end = Date()
-        if let string = data["end"] as? String {
-            end = dateTimeFormatter.date(from: string)!
+    
+    internal static func itemsFromJSONData(_ json: JSONDict?) -> Model {
+        
+        var broadcast = Broadcast()
+        
+        let programmeFragment = json.flatMap{$0["programme"] as? JSONDict}
+        let imageFragment = programmeFragment.flatMap{$0["image"] as? JSONDict}
+        let titlesFragment = programmeFragment.flatMap{$0["display_titles"] as? JSONDict}
+        
+        guard let start : String = json?["start"] as? String,
+            let end : String = json?["end"] as? String,
+            let duration = json?["duration"] as? Int,
+            let imagePid = imageFragment?["pid"] as? String,
+            let title = titlesFragment?["title"] as? String,
+            let subtitle = titlesFragment?["subtitle"] as? String
+        
+        else {
+            return broadcast
         }
         
-        duration = TimeInterval(data["duration"] as! Int)
-        programme = Programme(data["programme"] as! JSONDict)
-    }
-    
-    func meta() -> String? {
-        return nil
-    }
-    
-    static func broadcastsFormArray(_ array : Array<JSONDict>) -> Array<Broadcast> {
-        
-        var results : Array<Broadcast> = Array()
-        for obj in array {
-            results.append(Broadcast(obj))
-        }
-        return results
-    }
-}
+        broadcast.start = dateTimeFormatter.date(from: start)!
+        broadcast.end = dateTimeFormatter.date(from: end)!
+        broadcast.duration = TimeInterval(duration)
+        broadcast.imagePid = imagePid
+        broadcast.title = title
+        broadcast.subTitle = subtitle
 
-struct Programme : Model,JSONConstructable {
-    
-    let image : Image
-    let displayTitles: DisplayTitles
-    
-    init(_ data: JSONDict) {
-        image = Image(data["image"] as! JSONDict)
         
-        displayTitles =  DisplayTitles(data["display_titles"] as! JSONDict)
+        return Broadcast()
     }
     
-    func imageTitle() -> String? {
-        return nil
+    internal func text() -> String {
+        return meta()
+    }
+    
+    func meta() -> String {
+        
+        guard let start = start,
+            let end = end,
+            let duration = duration
+        else {
+            return ""
+        }
+        
+        return "Start:" + relativeDateFormatter.string(from:start) + "\nEnd:" + relativeDateFormatter.string(from: end) + "\nDuration:" + String(duration)
+    }
+    
+    func imageTitle() -> String {
+        guard let str = imagePid else {
+            return ""
+        }
+        return str
     }
     
     func programmeTitle() -> String? {
-        return nil
+        guard let str = title else {
+            return ""
+        }
+        return str
     }
 }
 
-struct Image : Model,JSONConstructable {
-    let pid : String
-    
-    init(_ data : JSONDict) {
-        pid = data["pid"] as! String
-    }
-}
-
-struct DisplayTitles : Model,JSONConstructable {
-    let title : String
-    let subTitle : String
-    
-    init(_ data : JSONDict) {
-        title = data["title"] as! String
-        subTitle = data["subtitle"] as! String
-    }
-}
 
